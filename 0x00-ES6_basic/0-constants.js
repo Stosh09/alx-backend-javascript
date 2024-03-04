@@ -4,7 +4,7 @@ export function taskFirst() {
 }
 
 export function getLast() {
-  return 'is Okay';
+  return 'is okay';
 }
 
 export function taskNext() {
