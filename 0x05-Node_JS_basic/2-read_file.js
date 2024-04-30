@@ -1,49 +1,62 @@
 const fs = require('fs');
 
-/**
- * Counts the students in a CSV data file.
- * @param {String} dataPath The path to the CSV data file.
- */
-const countStudents = (dataPath) => {
-  if (!fs.existsSync(dataPath)) {
-    throw new Error('Cannot load the database');
-  }
-  if (!fs.statSync(dataPath).isFile()) {
-    throw new Error('Cannot load the database');
-  }
-  const fileLines = fs
-    .readFileSync(dataPath, 'utf-8')
-    .toString('utf-8')
-    .trim()
-    .split('\n');
-  const studentGroups = {};
-  const dbFieldNames = fileLines[0].split(',');
-  const studentPropNames = dbFieldNames.slice(0, dbFieldNames.length - 1);
+function countStudents(path) {
+  try {
+    // Synchronously read the CSV file
+    const data = fs.readFileSync(path, 'utf8');
 
-  for (const line of fileLines.slice(1)) {
-    const studentRecord = line.split(',');
-    const studentPropValues = studentRecord.slice(0, studentRecord.length - 1);
-    const field = studentRecord[studentRecord.length - 1];
-    if (!Object.keys(studentGroups).includes(field)) {
-      studentGroups[field] = [];
+    // Parse CSV data
+    const students = [];
+    const lines = data.split('\n');
+
+    // Skip the header line (first line)
+    lines.shift();
+
+    // Iterate through each line and parse student information
+    for (const line of lines) {
+      if (line.trim() !== '') {
+        const [firstname, lastname, age, field] = line.split(',');
+        students.push({
+          firstname,
+          lastname,
+          age,
+          field,
+        });
+      }
     }
-    const studentEntries = studentPropNames.map((propName, idx) => [
-      propName,
-      studentPropValues[idx],
-    ]);
-    studentGroups[field].push(Object.fromEntries(studentEntries));
-  }
 
-  const totalStudents = Object.values(studentGroups).reduce(
-    (pre, cur) => (pre || []).length + cur.length
-  );
-  console.log(`Number of students: ${totalStudents}`);
-  for (const [field, group] of Object.entries(studentGroups)) {
-    const studentNames = group.map((student) => student.firstname).join(', ');
-    console.log(
-      `Number of students in ${field}: ${group.length}. List: ${studentNames}`
-    );
+    // Filter out invalid students (those with empty lines)
+    const validStudents = students.filter((student) => student.firstname);
+
+    // Count the number of students in each field
+    const fieldCounts = {};
+    validStudents.forEach((student) => {
+      if (fieldCounts[student.field]) {
+        fieldCounts[student.field] += 1;
+      } else {
+        fieldCounts[student.field] = 1;
+      }
+    });
+
+    // Log the results
+    console.log(`Number of students: ${validStudents.length}`);
+
+    for (const field in fieldCounts) {
+      if (Object.prototype.hasOwnProperty.call(fieldCounts, field)) {
+        const studentsInField = validStudents.filter(
+          (student) => student.field === field
+        );
+        const firstNameList = studentsInField
+          .map((student) => student.firstname)
+          .join(', ');
+        console.log(
+          `Number of students in ${field}: ${fieldCounts[field]}. List: ${firstNameList}`
+        );
+      }
+    }
+  } catch (error) {
+    throw new Error('Cannot load the database');
   }
-};
+}
 
 module.exports = countStudents;
